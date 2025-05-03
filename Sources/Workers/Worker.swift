@@ -18,12 +18,14 @@ public extension Worker {
     func autoStop() throws {
         guard time != .zero else { return }
 
-        sleep(UInt32(time))
+        let seconds = UInt32(time)
+        sleep(seconds)
+
         try stop()
     }
 
-    func log(_ info: T, _ additional: String = "") {
-        let main = info.rawValue.removingCamelCase
+    func log(_ task: T, _ additional: String = "") {
+        let main = task.rawValue.removingCamelCase
         Log.debug(main + " " + additional)
     }
 }

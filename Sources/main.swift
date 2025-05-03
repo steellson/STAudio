@@ -16,8 +16,10 @@ final class MainFlow {
     }
 
     func start() throws {
-        player.time = 5
-        recorder.time = 5
+        let seconds = 2
+
+        player.time = seconds
+        recorder.time = seconds
 
         try player.start()
         try recorder.start()

@@ -7,7 +7,7 @@
 
 import AVFoundation
 
-public final class Player: Worker<Player.Logs> {
+public final class Player: Worker<Player.Tasks> {
     private var isPlaying: Bool { player.isPlaying }
     private let player: AVAudioPlayer
 
@@ -17,29 +17,25 @@ public final class Player: Worker<Player.Logs> {
 
     // MARK: - Process
     override public func start() throws {
-        guard !isPlaying else { throw Errors.alreadyPlaying }
-        guard player.prepareToPlay() else { throw Errors.cantPreparePlaying }
+        guard !isPlaying else {
+            throw Errors.alreadyPlaying
+        }
 
-        player.play()
-        guard isPlaying else { throw Errors.cantPlay }
-
-        log(.playingStarted)
-        try autoStop()
+        try startPlay()
     }
 
     override public func stop() throws {
-        guard isPlaying else { throw Errors.alreadyStopped }
+        guard isPlaying else {
+            throw Errors.alreadyStopped
+        }
 
-        player.stop()
-        guard !isPlaying else { throw Errors.cantStop }
-
-        log(.playingStopped)
+        try endPlay()
     }
 }
 
 // MARK: - Types
 public extension Player {
-    enum Logs: String {
+    enum Tasks: String {
         case playing
         case playingStarted
         case playingStopped
@@ -51,5 +47,25 @@ public extension Player {
         case cantPreparePlaying
         case cantPlay
         case cantStop
+    }
+}
+
+// MARK: - Private
+private extension Player {
+    func startPlay() throws {
+        guard player.prepareToPlay() else { throw Errors.cantPreparePlaying }
+
+        player.play()
+        guard isPlaying else { throw Errors.cantPlay }
+
+        log(.playingStarted)
+        try autoStop()
+    }
+
+    func endPlay() throws {
+        player.stop()
+        guard !isPlaying else { throw Errors.cantStop }
+
+        log(.playingStopped)
     }
 }
