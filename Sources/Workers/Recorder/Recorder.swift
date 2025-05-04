@@ -8,7 +8,7 @@
 import AVFoundation
 
 public final class Recorder: Worker<Recorder.Tasks> {
-    private var isRunning: Bool { engine.isRunning }
+    private var isRecording: Bool { engine.isRunning }
 
     private let url: URL
     private let engine: AVAudioEngine
@@ -20,7 +20,9 @@ public final class Recorder: Worker<Recorder.Tasks> {
 
     // MARK: - Process
     override public func start() throws {
-        guard !isRunning else {
+        try super.start()
+
+        guard !isRecording else {
             throw Errors.alreadyRecording
         }
 
@@ -29,7 +31,9 @@ public final class Recorder: Worker<Recorder.Tasks> {
     }
 
     override public func stop() throws {
-        guard isRunning else {
+        try super.stop()
+
+        guard isRecording else {
             throw Errors.alreadyStopped
         }
 
@@ -40,6 +44,7 @@ public final class Recorder: Worker<Recorder.Tasks> {
 // MARK: - Types
 public extension Recorder {
     enum Tasks: String {
+        case recording
         case startRecordingAtPath
         case stopRecording
     }
@@ -72,7 +77,7 @@ private extension Recorder {
             commonFormat: format.commonFormat,
             interleaved: format.isInterleaved
         )
-        let writeFromBuffer: (AVAudioPCMBuffer, AVAudioTime) -> Void = { buffer, _ in
+        let writeFromBuffer: (AVAudioPCMBuffer, AVAudioTime) -> Void = { buffer, time in
             try? file.write(from: buffer)
         }
 
@@ -86,17 +91,29 @@ private extension Recorder {
 
     func startRecording() throws {
         engine.prepare()
+
         try engine.start()
-
-        guard isRunning else { throw Errors.cantRecord }
-
+        guard isRecording else {
+            throw Errors.cantRecord
+        }
+        
         log(.startRecordingAtPath, url.absoluteString)
-        try autoStop()
+        try processRecording()
+    }
+
+    func processRecording() throws {
+        while isRecording {
+            step()
+            log(.recording)
+            try autoStop(endRecording)
+        }
     }
 
     func endRecording() throws {
         engine.stop()
-        guard !isRunning else { throw Errors.cantStop }
+        guard !isRecording else {
+            throw Errors.cantStop
+        }
 
         log(.stopRecording)
     }

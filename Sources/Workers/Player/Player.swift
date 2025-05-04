@@ -17,6 +17,8 @@ public final class Player: Worker<Player.Tasks> {
 
     // MARK: - Process
     override public func start() throws {
+        try super.start()
+
         guard !isPlaying else {
             throw Errors.alreadyPlaying
         }
@@ -25,6 +27,8 @@ public final class Player: Worker<Player.Tasks> {
     }
 
     override public func stop() throws {
+        try super.stop()
+
         guard isPlaying else {
             throw Errors.alreadyStopped
         }
@@ -53,18 +57,32 @@ public extension Player {
 // MARK: - Private
 private extension Player {
     func startPlay() throws {
-        guard player.prepareToPlay() else { throw Errors.cantPreparePlaying }
+        guard player.prepareToPlay() else {
+            throw Errors.cantPreparePlaying
+        }
 
         player.play()
-        guard isPlaying else { throw Errors.cantPlay }
+        guard isPlaying else {
+            throw Errors.cantPlay
+        }
 
         log(.playingStarted)
-        try autoStop()
+        try processPlaying()
+    }
+
+    func processPlaying() throws {
+        while isPlaying {
+            step()
+            log(.playing)
+            try autoStop(endPlay)
+        }
     }
 
     func endPlay() throws {
         player.stop()
-        guard !isPlaying else { throw Errors.cantStop }
+        guard !isPlaying else {
+            throw Errors.cantStop
+        }
 
         log(.playingStopped)
     }

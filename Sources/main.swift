@@ -3,8 +3,8 @@ import Foundation
 let workingDirectory = "/Users/steellson/Desktop/"
 
 final class MainFlow {
-    private let player: Player
-    private let recorder: Recorder
+    private let player: Worker<Player.Tasks>
+    private let recorder: Worker<Recorder.Tasks>
     private let toPlay, toRecord: Finder
 
     init() throws {
@@ -16,10 +16,10 @@ final class MainFlow {
     }
 
     func start() throws {
-        let seconds = 2
+        let seconds = 5.0
 
-        player.time = seconds
-        recorder.time = seconds
+        player.duration = seconds
+        recorder.duration = seconds
 
         try player.start()
         try recorder.start()
