@@ -9,7 +9,7 @@ let package = Package(
         .macOS(.v12)
     ],
     products: [
-        .executable(
+        .library(
             name: "STAudio",
             targets: [
                 "STAudio"
@@ -23,7 +23,7 @@ let package = Package(
 //        )
     ],
     targets: [
-        .executableTarget(
+        .target(
             name: "STAudio",
             dependencies: [
 //                .byName(name: "SUtils")
