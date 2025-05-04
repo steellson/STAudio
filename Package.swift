@@ -8,6 +8,14 @@ let package = Package(
     platforms: [
         .macOS(.v12)
     ],
+    products: [
+        .executable(
+            name: "STAudio",
+            targets: [
+                "STAudio"
+            ]
+        )
+    ],
     dependencies: [
 //        .package(
 //            name: "SUtils",
