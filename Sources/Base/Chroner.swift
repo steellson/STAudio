@@ -27,7 +27,7 @@ open class Chroner<T: Numeric> {
         remaining = duration
     }
 
-    func autoStop(_ action: () throws -> Void) throws {
-        if finished { try action() }
+    func autoStop(_ stop: () throws -> Void) throws {
+        if finished { try stop() }
     }
 }

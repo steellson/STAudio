@@ -36,7 +36,7 @@ public extension Log {
 }
 
 // MARK: - Action
-private extension Log {
+public extension Log {
     /// Send logs into console
     /// - Parameters:
     ///   - message: Text info for logging

@@ -7,15 +7,26 @@
 
 import Foundation
 
-/// ** Abstract service **
-public class Worker<T: RawRepresentable>: Chroner<TimeInterval> where T.RawValue == String {
+/// Service or process with progress in time
+public class Worker<T: RawRepresentable>: Chroner<TimeInterval> {
     public func start() throws { reset() }
     public func stop() throws {}
 }
 
 public extension Worker {
-    func log(_ task: T, _ additional: String = "") {
-        let main = task.rawValue.removingCamelCase
-        Log.debug(main + " " + additional)
+    /// Logger with levels, can parse enum logs
+    /// - Parameters:
+    ///   - task: Some case from enum which conformed String
+    ///   - additional: Payload if needed
+    ///   - type: Log level
+    func log(
+        _ task: T,
+        _ additional: String = "",
+        _ type: Log.UseCase = .debug
+    ) where T.RawValue == String {
+        let msg = task.rawValue.removingCamelCase
+        let log = msg + " " + additional
+
+        Log.send(log, type: type)
     }
 }

@@ -3,26 +3,25 @@ import Foundation
 let workingDirectory = "/Users/steellson/Desktop/"
 
 final class MainFlow {
-    private let player: Worker<Player.Tasks>
     private let recorder: Worker<Recorder.Tasks>
-    private let toPlay, toRecord: Finder
+    private let player: Worker<Player.Tasks>
 
     init() throws {
-        toPlay = try Finder(workingDirectory + "1.wav")
-        toRecord = try Finder(workingDirectory + "2.wav")
-
-        player = try Player(toPlay.url)
+        let toRecord = try Filer(workingDirectory, file: "2.wav")
         recorder = try Recorder(toRecord.url)
+
+        let toPlay = try Finder(workingDirectory + "1.wav")
+        player = try Player(toPlay.url)
     }
 
     func start() throws {
         let seconds = 5.0
 
-        player.duration = seconds
         recorder.duration = seconds
+        player.duration = seconds
 
-        try player.start()
         try recorder.start()
+        try player.start()
     }
 }
 
