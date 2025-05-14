@@ -7,44 +7,20 @@
 
 import AVFoundation
 
-public final class Player: Worker<Player.Tasks> {
-    private var isPlaying: Bool { player.isPlaying }
+public final class Player {
+    public var isPlaying: Bool { player.isPlaying }
+
+    private let url: URL
     private let player: AVAudioPlayer
 
     public init(_ url: URL) throws {
-        player = try AVAudioPlayer(contentsOf: url)
-    }
-
-    // MARK: - Process
-    override public func start() throws {
-        try super.start()
-
-        guard !isPlaying else {
-            throw Errors.alreadyPlaying
-        }
-
-        try startPlay()
-    }
-
-    override public func stop() throws {
-        try super.stop()
-
-        guard isPlaying else {
-            throw Errors.alreadyStopped
-        }
-
-        try endPlay()
+        self.url = url
+        self.player = try AVAudioPlayer(contentsOf: url)
     }
 }
 
 // MARK: - Types
 public extension Player {
-    enum Tasks: String {
-        case playing
-        case playingStarted
-        case playingStopped
-    }
-
     enum Errors: Error {
         case alreadyPlaying
         case alreadyStopped
@@ -54,28 +30,44 @@ public extension Player {
     }
 }
 
-// MARK: - Private
+// MARK: - Public
+public extension Player {
+    func start() async throws {
+        guard !isPlaying else {
+            throw Errors.alreadyPlaying
+        }
+
+        try preparePlayer()
+        try startPlay()
+    }
+
+    func stop() async throws {
+        guard isPlaying else {
+            throw Errors.alreadyStopped
+        }
+
+        try endPlay()
+    }
+}
+
+// MARK: - Preparings
 private extension Player {
-    func startPlay() throws {
+    func preparePlayer() throws {
         guard player.prepareToPlay() else {
             throw Errors.cantPreparePlaying
         }
+    }
+}
 
+// MARK: - Process
+private extension Player {
+    func startPlay() throws {
         player.play()
         guard isPlaying else {
             throw Errors.cantPlay
         }
 
-        log(.playingStarted)
-        try processPlaying()
-    }
-
-    func processPlaying() throws {
-        while isPlaying {
-            step()
-            log(.playing)
-            try autoStop(endPlay)
-        }
+        Log.success("Playing started! URL: \(url)")
     }
 
     func endPlay() throws {
@@ -84,6 +76,6 @@ private extension Player {
             throw Errors.cantStop
         }
 
-        log(.playingStopped)
+        Log.info("Stop playing")
     }
 }

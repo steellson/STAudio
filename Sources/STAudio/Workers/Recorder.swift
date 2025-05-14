@@ -7,72 +7,130 @@
 
 import AVFoundation
 
-public final class Recorder: Worker<Recorder.Tasks> {
-    private var isRecording: Bool { engine.isRunning }
+public final class Recorder {
+    public var isRecording: Bool { engine.isRunning }
 
-    private let url: URL
+    private(set) var exportURL: URL?
+    private let baseURL: URL = {
+        FileManager.default
+            .homeDirectoryForCurrentUser
+            .appending(path: "STAudio")
+    }()
+
+    private var isFirstRecord: Bool {
+        var isDir : ObjCBool = true
+        return fileManager.fileExists(
+            atPath: baseURL.absoluteString,
+            isDirectory: &isDir
+        )
+    }
+
     private let engine: AVAudioEngine
+    private let fileManager: FileManager
 
-    public init(_ url: URL) throws {
-        self.url = url
+    public init() {
         self.engine = AVAudioEngine()
-    }
-
-    // MARK: - Process
-    override public func start() throws {
-        try super.start()
-
-        guard !isRecording else {
-            throw Errors.alreadyRecording
-        }
-
-        try prepareNode()
-        try startRecording()
-    }
-
-    override public func stop() throws {
-        try super.stop()
-
-        guard isRecording else {
-            throw Errors.alreadyStopped
-        }
-
-        try endRecording()
+        self.fileManager = FileManager.default
     }
 }
 
 // MARK: - Types
 public extension Recorder {
-    enum Tasks: String {
-        case recording
-        case startRecordingAtPath
-        case stopRecording
-    }
-
-    enum Errors: Error {
-        case alreadyRecording
-        case alreadyStopped
-        case cantRecord
-        case cantStop
-    }
-
     enum BufferSize: AVAudioFrameCount {
         case small  = 256
         case medium = 512
         case large  = 1024
     }
+
+    enum Errors: Error {
+        case alreadyRecording
+        case alreadyStopped
+        case cantPrepare
+        case cantRecord
+        case cantStop
+        case cantExport
+        case cantCreateFile
+    }
 }
 
-// MARK: - Private
+// MARK: - Public
+public extension Recorder {
+    func start(
+        _ name: String,
+        _ format: String? = nil
+    ) async throws {
+        guard !isRecording else {
+            throw Errors.alreadyRecording
+        }
+
+        try prepareFolder()
+        try prepareExport(name, format)
+        try prepareNode()
+        try startRecording()
+    }
+
+    func stop() async throws -> URL {
+        guard isRecording else {
+            throw Errors.alreadyStopped
+        }
+
+        return try await endRecording()
+    }
+}
+
+// MARK: - Preparings
 private extension Recorder {
+    func prepareFolder() throws {
+        guard isFirstRecord else { return }
+
+        try fileManager.createDirectory(
+            at: baseURL,
+            withIntermediateDirectories: false
+        )
+    }
+
+    func prepareExport(
+        _ name: String,
+        _ format: String? = nil
+    ) throws {
+        guard let createdURL = {
+            let base = baseURL.appending(path: name)
+
+            return if let format {
+                base.appendingPathExtension(format)
+            } else {
+                base
+            }
+        }() else {
+            throw Errors.cantCreateFile
+        }
+
+        exportURL = createdURL
+
+        if fileManager.fileExists(atPath: createdURL.absoluteString) {
+            try fileManager.removeItem(at: createdURL)
+        }
+    }
+
     func prepareNode() throws {
+        guard let exportURL else {
+            throw Errors.cantPrepare
+        }
+
         let bus: AVAudioNodeBus = .zero
         let node: AVAudioInputNode = engine.inputNode
         let format: AVAudioFormat = node.inputFormat(forBus: bus)
+//        guard let format: AVAudioFormat = AVAudioFormat(
+//            commonFormat: .pcmFormatInt16,
+//            sampleRate: 44100,
+//            channels: AVAudioChannelCount(2),
+//            interleaved: false
+//        ) else {
+//            throw Errors.cantStart
+//        }
         let bufferSize: AVAudioFrameCount = BufferSize.medium.rawValue
-
         let file: AVAudioFile = try AVAudioFile(
-            forWriting: url,
+            forWriting: exportURL,
             settings: format.settings,
             commonFormat: format.commonFormat,
             interleaved: format.isInterleaved
@@ -88,33 +146,35 @@ private extension Recorder {
             block: writeFromBuffer
         )
     }
+}
 
+// MARK: - Process
+private extension Recorder {
     func startRecording() throws {
         engine.prepare()
-
         try engine.start()
+
         guard isRecording else {
             throw Errors.cantRecord
         }
-        
-        log(.startRecordingAtPath, url.absoluteString)
-        try processRecording()
+
+        Log.info("Recording started! URL: \(exportURL)")
     }
 
-    func processRecording() throws {
-        while isRecording {
-            step()
-            log(.recording)
-            try autoStop(endRecording)
-        }
-    }
-
-    func endRecording() throws {
+    func endRecording() async throws -> URL {
         engine.stop()
         guard !isRecording else {
             throw Errors.cantStop
         }
 
-        log(.stopRecording)
+        Log.info("Recording stopped")
+        return try await export()
+    }
+
+    func export() async throws -> URL {
+        guard let exportURL else {
+            throw Errors.cantExport
+        }
+        return exportURL
     }
 }

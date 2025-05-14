@@ -5,30 +5,84 @@
 //  Created by Andrew Steellson on 03.05.2025.
 //
 
-import Foundation
+import AppKit
 
-public struct Finder {
+@MainActor
+public final class Finder {
     public enum Errors: Error {
-        case emptyPath
-        case cantFindFile
-        case cantCreateURL
+        case selectionCancelled
+        case savingCancelled
+        case cantSelectWithURL
+        case cantSaveFileWithURL
     }
 
-    public let url: URL
+    private let windowLevel = CGWindowLevelForKey(.modalPanelWindow)
+    private var directoryURL = FileManager.default
+        .homeDirectoryForCurrentUser
+        .appending(component: "Desktop")
 
-    /// ** TO FIND FILE**
-    /// - Parameter path: Absolute path to wanted file
-    public init(_ path: String?) throws {
-        guard let path else {
-            throw Errors.emptyPath
-        }
-        guard FileManager.default.fileExists(atPath: path) else {
-            throw Errors.cantFindFile
-        }
-        guard let safeURL = URL(string: path) else {
-            throw Errors.cantCreateURL
+    private let openPanel: NSOpenPanel
+    private let savePanel: NSSavePanel
+
+    public init() {
+        openPanel = NSOpenPanel()
+        savePanel = NSSavePanel()
+
+        setup()
+    }
+}
+
+// MARK: - Public
+public extension Finder {
+    func selectFile() async throws -> URL {
+        guard await openPanel.begin() == .OK else {
+            throw Errors.selectionCancelled
         }
 
-        url = safeURL
+        guard let url = openPanel.urls.first else {
+            throw Errors.cantSelectWithURL
+        }
+
+        return url
+    }
+
+    @discardableResult
+    func saveFile(
+        in directory: String? = nil,
+        with name: String
+    ) throws -> URL {
+        NSApp.activate(ignoringOtherApps: true)
+        savePanel.nameFieldStringValue = name
+
+        if let directory,
+           let directoryURL = URL(string: directory) {
+            self.directoryURL = directoryURL
+        }
+
+        let response = savePanel.runModal()
+        guard response == .OK else {
+            throw Errors.savingCancelled
+        }
+
+        guard let url = savePanel.url else {
+            throw Errors.cantSaveFileWithURL
+        }
+
+        return url
+    }
+}
+
+// MARK: - Private
+private extension Finder {
+    func setup() {
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+
+        savePanel.canCreateDirectories = true
+        savePanel.showsTagField = false
+        savePanel.directoryURL = directoryURL
+        savePanel.level = NSWindow.Level(
+            rawValue: Int(windowLevel)
+        )
     }
 }
