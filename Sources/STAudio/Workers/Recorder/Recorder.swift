@@ -9,21 +9,21 @@ import AVFoundation
 
 public final class Recorder {
     public var isRecording: Bool { engine.isRunning }
-
-    private(set) var exportURL: URL?
-    private let baseURL: URL = {
-        FileManager.default
-            .homeDirectoryForCurrentUser
-            .appending(path: "STAudio")
-    }()
+    private(set) var file: AudioFile?
 
     private var isFirstRecord: Bool {
-        var isDir : ObjCBool = true
+        var isDir: ObjCBool = true
         return fileManager.fileExists(
             atPath: baseURL.absoluteString,
             isDirectory: &isDir
         )
     }
+
+    private let baseURL: URL = {
+        FileManager.default
+            .homeDirectoryForCurrentUser
+            .appending(path: "STAudio")
+    }()
 
     private let engine: AVAudioEngine
     private let fileManager: FileManager
@@ -50,26 +50,24 @@ public extension Recorder {
         case cantStop
         case cantExport
         case cantCreateFile
+        case cantReadFormat
     }
 }
 
 // MARK: - Public
 public extension Recorder {
-    func start(
-        _ name: String,
-        _ format: String? = nil
-    ) async throws {
+    func start(_ file: String) async throws {
         guard !isRecording else {
             throw Errors.alreadyRecording
         }
 
+        try prepareFile(file)
         try prepareFolder()
-        try prepareExport(name, format)
         try prepareNode()
         try startRecording()
     }
 
-    func stop() async throws -> URL {
+    func stop() async throws -> AudioFile {
         guard isRecording else {
             throw Errors.alreadyStopped
         }
@@ -80,6 +78,28 @@ public extension Recorder {
 
 // MARK: - Preparings
 private extension Recorder {
+    func prepareFile(_ file: String) throws {
+        let source = file.split(separator: ".")
+        let name = String(source.first ?? "")
+        let ext = String(source.last ?? "")
+
+        guard name != ext,
+              let format = AudioFile.Format(rawValue: ext) else {
+            throw Errors.cantReadFormat
+        }
+
+        let url = baseURL.appending(path: file)
+        self.file = AudioFile(
+            url: url,
+            name: name,
+            format: format
+        )
+
+        if fileManager.fileExists(atPath: url.absoluteString) {
+            try fileManager.removeItem(at: url)
+        }
+    }
+
     func prepareFolder() throws {
         guard isFirstRecord else { return }
 
@@ -89,54 +109,23 @@ private extension Recorder {
         )
     }
 
-    func prepareExport(
-        _ name: String,
-        _ format: String? = nil
-    ) throws {
-        guard let createdURL = {
-            let base = baseURL.appending(path: name)
-
-            return if let format {
-                base.appendingPathExtension(format)
-            } else {
-                base
-            }
-        }() else {
-            throw Errors.cantCreateFile
-        }
-
-        exportURL = createdURL
-
-        if fileManager.fileExists(atPath: createdURL.absoluteString) {
-            try fileManager.removeItem(at: createdURL)
-        }
-    }
-
     func prepareNode() throws {
-        guard let exportURL else {
+        guard let file else {
             throw Errors.cantPrepare
         }
 
         let bus: AVAudioNodeBus = .zero
         let node: AVAudioInputNode = engine.inputNode
         let format: AVAudioFormat = node.inputFormat(forBus: bus)
-//        guard let format: AVAudioFormat = AVAudioFormat(
-//            commonFormat: .pcmFormatInt16,
-//            sampleRate: 44100,
-//            channels: AVAudioChannelCount(2),
-//            interleaved: false
-//        ) else {
-//            throw Errors.cantStart
-//        }
         let bufferSize: AVAudioFrameCount = BufferSize.medium.rawValue
-        let file: AVAudioFile = try AVAudioFile(
-            forWriting: exportURL,
+        let audioFile: AVAudioFile = try AVAudioFile(
+            forWriting: file.url,
             settings: format.settings,
             commonFormat: format.commonFormat,
             interleaved: format.isInterleaved
         )
         let writeFromBuffer: (AVAudioPCMBuffer, AVAudioTime) -> Void = { buffer, time in
-            try? file.write(from: buffer)
+            try? audioFile.write(from: buffer)
         }
 
         node.installTap(
@@ -158,10 +147,10 @@ private extension Recorder {
             throw Errors.cantRecord
         }
 
-        Log.info("Recording started! URL: \(exportURL)")
+        Log.info("Recording started!")
     }
 
-    func endRecording() async throws -> URL {
+    func endRecording() async throws -> AudioFile {
         engine.stop()
         guard !isRecording else {
             throw Errors.cantStop
@@ -171,10 +160,12 @@ private extension Recorder {
         return try await export()
     }
 
-    func export() async throws -> URL {
-        guard let exportURL else {
+    func export() async throws -> AudioFile {
+        guard let file else {
             throw Errors.cantExport
         }
-        return exportURL
+
+        Log.success("Exported file: \(file.url)")
+        return file
     }
 }
