@@ -1,9 +1,4 @@
-//
-//  Finder.swift
-//  STAudio
-//
 //  Created by Andrew Steellson on 03.05.2025.
-//
 
 import AppKit
 
@@ -34,6 +29,7 @@ public final class Finder {
 
 // MARK: - Public
 public extension Finder {
+    /// Choose any file from your desktop
     func selectFile() async throws -> URL {
         guard await openPanel.begin() == .OK else {
             throw Errors.selectionCancelled
@@ -43,21 +39,20 @@ public extension Finder {
             throw Errors.cantSelectWithURL
         }
 
+        Log.info("Selected file url: \(url)")
         return url
     }
-
+    
+    /// Save file using dialog window
+    /// - Parameters:
+    ///   - name: File name
+    /// - Returns: Saved file url address
     @discardableResult
     func saveFile(
-        in directory: String? = nil,
         with name: String
     ) throws -> URL {
         NSApp.activate(ignoringOtherApps: true)
         savePanel.nameFieldStringValue = name
-
-        if let directory,
-           let directoryURL = URL(string: directory) {
-            self.directoryURL = directoryURL
-        }
 
         let response = savePanel.runModal()
         guard response == .OK else {
@@ -68,6 +63,7 @@ public extension Finder {
             throw Errors.cantSaveFileWithURL
         }
 
+        Log.success("File saved at \(url)")
         return url
     }
 }

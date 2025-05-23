@@ -1,9 +1,4 @@
-//
-//  Player.swift
-//  STAudio
-//
 //  Created by Andrew Steellson on 02.05.2025.
-//
 
 import AVFoundation
 
@@ -30,7 +25,7 @@ public extension Player {
     }
 }
 
-// MARK: - Public
+// MARK: - Play
 public extension Player {
     func start() async throws {
         guard !isPlaying else {
