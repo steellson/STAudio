@@ -11,17 +11,16 @@ public final class Finder {
         case cantSaveFileWithURL
     }
 
-    private let windowLevel = CGWindowLevelForKey(.modalPanelWindow)
-    private var directoryURL = FileManager.default
-        .homeDirectoryForCurrentUser
-        .appending(component: "Desktop")
-
     private let openPanel: NSOpenPanel
     private let savePanel: NSSavePanel
+    private let fileManager: FileManager
+    private let windowLevel: CGWindowLevel
 
     public init() {
         openPanel = NSOpenPanel()
         savePanel = NSSavePanel()
+        fileManager = FileManager.default
+        windowLevel = CGWindowLevelForKey(.modalPanelWindow)
 
         setup()
     }
@@ -45,26 +44,25 @@ public extension Finder {
     
     /// Save file using dialog window
     /// - Parameters:
-    ///   - name: File name
-    /// - Returns: Saved file url address
+    ///   - url: Existing file url
+    /// - Returns: Saved file url
     @discardableResult
-    func saveFile(
-        with name: String
-    ) throws -> URL {
+    func saveFile(with url: URL) throws -> URL {
         NSApp.activate(ignoringOtherApps: true)
-        savePanel.nameFieldStringValue = name
+        savePanel.nameFieldStringValue = url.lastPathComponent
 
         let response = savePanel.runModal()
         guard response == .OK else {
             throw Errors.savingCancelled
         }
 
-        guard let url = savePanel.url else {
+        guard let selectedURL = savePanel.url else {
             throw Errors.cantSaveFileWithURL
         }
 
-        Log.success("File saved at \(url)")
-        return url
+        try fileManager.moveItem(at: url, to: selectedURL)
+        Log.success("File saved at \(selectedURL)")
+        return selectedURL
     }
 }
 
@@ -76,7 +74,7 @@ private extension Finder {
 
         savePanel.canCreateDirectories = true
         savePanel.showsTagField = false
-        savePanel.directoryURL = directoryURL
+        savePanel.directoryURL = .desktopDirectory
         savePanel.level = NSWindow.Level(
             rawValue: Int(windowLevel)
         )
