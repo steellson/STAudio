@@ -73,26 +73,38 @@ public extension Settings {
 // MARK: - Selectable
 public extension Settings {
     public enum AudioQuality: Int {
+        /// 32
         case low    = 32
+        /// 64
         case medium = 64
+        /// 96
         case high   = 96
     }
 
     public enum BitDepth: Int16 {
+        /// 8
         case low    = 8
+        /// 16
         case medium = 16
+        /// 32
         case high   = 32
     }
 
     public enum BufferSize: AVAudioFrameCount {
+        /// 256
         case low  = 256
+        /// 512
         case medium = 512
+        /// 1024
         case high   = 1024
     }
 
     public enum SampleRate: Int32 {
+        /// 16000
         case low    = 16000
+        /// 44100
         case medium = 44100
+        /// 48000
         case high   = 48000
     }
 }
