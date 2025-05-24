@@ -2,8 +2,8 @@
 
 import Foundation
 
-public struct AudioFile: Sendable {
+public struct File: Sendable {
     public let url: URL
     public let name: String
-    public let format: AudioFormat
+    public let format: Format
 }
