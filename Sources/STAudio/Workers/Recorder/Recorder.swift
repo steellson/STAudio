@@ -100,18 +100,7 @@ private extension Recorder {
         file = try File(
             url: url,
             name: name,
-            format: format,
-            pcmFormat: .pcmInt16,
-            settings: Settings.build(
-                .custom(
-                    Settings(
-                        formatID: kAudioFormatFLAC,
-                        bitDepth: .,
-                        sampleRate: <#T##Settings.SampleRate#>,
-                        audioQuality: .high
-                    )
-                )
-            )
+            format: format
         )
     }
 
