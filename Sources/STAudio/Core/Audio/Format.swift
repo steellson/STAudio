@@ -1,12 +1,23 @@
 //  Created by Andrew Steellson on 24.05.2025.
 
- public enum Format: String,
-                     Sendable,
-                     CaseIterable {
-     case mp3
-     case wav
-     case flac
-     case aac
+import AVFoundation
+
+public enum Format: String,
+                    Sendable,
+                    CaseIterable {
+    case mp3
+    case wav
+    case flac
+    case aac
+
+    func buildID() -> AudioFormatID {
+        switch self {
+        case .flac: kAudioFormatFLAC
+        case .aac:  kAudioFormatMPEG4AAC
+        case .wav:  kAudioFormatLinearPCM
+        case .mp3:  kAudioFormatMPEGLayer3
+        }
+    }
 }
 
 public enum PCMFormat: UInt {

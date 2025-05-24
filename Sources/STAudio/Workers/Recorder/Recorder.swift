@@ -100,7 +100,18 @@ private extension Recorder {
         file = try File(
             url: url,
             name: name,
-            format: format
+            format: format,
+            pcmFormat: .pcmInt16,
+            settings: Settings.build(
+                .custom(
+                    Settings(
+                        formatID: .wav,
+                        bitDepth: .medium,
+                        sampleRate: .medium,
+                        audioQuality: .medium
+                    )
+                )
+            )
         )
     }
 
