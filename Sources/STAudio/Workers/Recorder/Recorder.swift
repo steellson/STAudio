@@ -3,9 +3,9 @@
 import AVFoundation
 
 public final class Recorder {
+    public var file: AudioFile?
     public var isRecording: Bool { engine.isRunning }
 
-    private(set) var file: AudioFile?
     private var isFirstRecord: Bool {
         !fileManager.fileExists(atPath: baseURL.relativePath)
     }
@@ -171,21 +171,21 @@ private extension Recorder {
     func createNewRecord(_ format: AudioFormat) -> String {
         var name = ""
         var prefix = "Record_"
-        searchRecords(with: prefix)
-            .enumerated()
-            .forEach { index, record in
-                guard name.isEmpty else { return }
 
-                let number = index == .zero ? index + 1 : index
-                let newName = "\(prefix)\(number).\(format.rawValue)"
-                let newPath = baseURL.appending(path: newName).path()
+        let records = searchRecords(with: prefix)
+        records.enumerated().forEach { index, record in
+            guard name.isEmpty else { return }
 
-                guard !fileManager.fileExists(atPath: newPath) else { return }
-                name = newName
+            let number = index + 1
+            let newName = "\(prefix)\(number).\(format.rawValue)"
+            let newPath = baseURL.appending(path: newName).path()
+
+            guard !fileManager.fileExists(atPath: newPath) else { return }
+            name = newName
         }
 
-        let defaultName = "\(prefix)1.\(format.rawValue)"
-        return name.hasSuffix(format.rawValue) ? name : defaultName
+        let defaultName = "\(prefix)\(records.count + 1).\(format.rawValue)"
+        return name.isEmpty ? defaultName : name
     }
 
     func searchRecords(with prefix: String) -> [String] {
