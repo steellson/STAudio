@@ -2,40 +2,62 @@
 
 import AVFoundation
 
-public struct Settings {
-    public enum Preset {
-        case `default`
-        case custom(Settings)
-    }
+public struct Settings: Sendable {
+    static let `default` = Settings(
+        bitDepth: BitDepth.medium.rawValue,
+        formatID: kAudioFormatLinearPCM,
+        sampleRate: SampleRate.medium.rawValue,
+        audioQuality: AudioQuality.medium.rawValue
+    )
 
-    public let formatID: Int32
+    public let formatID: UInt32
     public let sampleRate: Int32
     public let bitDepth: Int16
     public let audioQuality: Int
 
     public init(
-        formatID: Int32,
-        sampleRate: Int32,
         bitDepth: Int16,
+        formatID: UInt32,
+        sampleRate: Int32,
         audioQuality: Int
     ) {
+        self.bitDepth = bitDepth
         self.formatID = formatID
         self.sampleRate = sampleRate
-        self.bitDepth = bitDepth
         self.audioQuality = audioQuality
+    }
+}
+
+// MARK: - Convert
+public extension Settings {
+    public init(_ source: [String: Any]) {
+        let bitDepth = source["AVLinearPCMBitDepthKey"] as? Int16
+        let formatID = source["AVFormatIDKey"] as? UInt32
+        let sampleRate = source["AVSampleRateKey"] as? Int32
+        let audioQuality = source["AVEncoderAudioQualityKey"] as? Int
+
+        self.bitDepth = bitDepth ?? Self.default.bitDepth
+        self.formatID = formatID ?? Self.default.formatID
+        self.sampleRate = sampleRate ?? Self.default.sampleRate
+        self.audioQuality = audioQuality ?? Self.default.audioQuality
     }
 }
 
 // MARK: - Build
 public extension Settings {
+    public enum Preset {
+        case `default`
+        case custom(Settings)
+    }
+
     public static func build(_ preset: Preset = .default) -> [String: Any] {
         switch preset {
         case .default:
             [
-                AVFormatIDKey: kAudioFormatLinearPCM,
-                AVSampleRateKey: SampleRate.medium.rawValue,
-                AVLinearPCMBitDepthKey: BitDepth.medium.rawValue,
-                AVEncoderAudioQualityKey: AudioQuality.medium.rawValue
+                AVFormatIDKey: Self.default.formatID,
+                AVSampleRateKey: Self.default.sampleRate,
+                AVLinearPCMBitDepthKey: Self.default.bitDepth,
+                AVEncoderAudioQualityKey: Self.default.audioQuality
             ]
         case let .custom(settings):
             [

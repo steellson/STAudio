@@ -46,7 +46,7 @@ public extension Recorder {
         }
 
         try prepareFolder()
-        prepareFile(file)
+        try prepareFile(file)
         try prepareNode()
         try startRecording()
     }
@@ -87,7 +87,7 @@ private extension Recorder {
         )
     }
 
-    func prepareFile(_ name: String?) {
+    func prepareFile(_ name: String?) throws {
         let defaultFormat = Format.wav
         let createdFile = (name ?? createNewRecord(defaultFormat)) as NSString
 
@@ -96,26 +96,22 @@ private extension Recorder {
         let url = baseURL.appending(path: createdFile as String)
 
         try? fileManager.removeItem(at: url)
-        file = File(url: url, name: name, format: format)
+        file = try File(url: url, name: name, format: format)
     }
 
     func prepareNode() throws {
         guard let file else { throw Errors.cantPrepare }
 
-        let audioFile = try AVAudioFile(
-            forWriting: file.url,
-            settings: Settings.build(),
-            commonFormat: .pcmFormatInt32,
-            interleaved: false
-        )
+        let size = Settings.BufferSize.medium.rawValue
+        let format = file.processingFormat
 
         engine.inputNode.installTap(
             onBus: .zero,
-            bufferSize: Settings.BufferSize.medium.rawValue,
-            format: audioFile.processingFormat
+            bufferSize: size,
+            format: format
         ) { buffer, _ in
             do {
-                try audioFile.write(from: buffer)
+                try file.write(from: buffer)
             } catch {
                 Log.critical("Audio engine write in buffer error: \(error)")
             }
