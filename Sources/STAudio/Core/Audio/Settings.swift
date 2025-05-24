@@ -4,10 +4,10 @@ import AVFoundation
 
 public struct Settings: Sendable {
     static let `default` = Settings(
-        bitDepth: BitDepth.medium.rawValue,
         formatID: kAudioFormatLinearPCM,
-        sampleRate: SampleRate.medium.rawValue,
-        audioQuality: AudioQuality.medium.rawValue
+        bitDepth: .medium,
+        sampleRate: .medium,
+        audioQuality: .medium
     )
 
     public let formatID: UInt32
@@ -16,15 +16,15 @@ public struct Settings: Sendable {
     public let audioQuality: Int
 
     public init(
-        bitDepth: Int16,
         formatID: UInt32,
-        sampleRate: Int32,
-        audioQuality: Int
+        bitDepth: BitDepth,
+        sampleRate: SampleRate,
+        audioQuality: AudioQuality
     ) {
-        self.bitDepth = bitDepth
         self.formatID = formatID
-        self.sampleRate = sampleRate
-        self.audioQuality = audioQuality
+        self.bitDepth = bitDepth.rawValue
+        self.sampleRate = sampleRate.rawValue
+        self.audioQuality = audioQuality.rawValue
     }
 }
 

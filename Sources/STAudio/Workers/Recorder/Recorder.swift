@@ -96,7 +96,12 @@ private extension Recorder {
         let url = baseURL.appending(path: createdFile as String)
 
         try? fileManager.removeItem(at: url)
-        file = try File(url: url, name: name, format: format)
+
+        file = try File(
+            url: url,
+            name: name,
+            format: format
+        )
     }
 
     func prepareNode() throws {

@@ -2,7 +2,7 @@
 
 import AVFoundation
 
-public class File: AVAudioFile {
+public final class File: AVAudioFile {
     public let name: String
     public let format: Format
     public let settings: Settings
