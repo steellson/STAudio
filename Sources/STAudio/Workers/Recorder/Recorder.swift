@@ -27,24 +27,6 @@ public final class Recorder {
 
 // MARK: - Types
 public extension Recorder {
-    enum BufferSize: AVAudioFrameCount {
-        case small  = 256
-        case medium = 512
-        case large  = 1024
-    }
-
-    enum SampleRate: Int32 {
-        case low    = 16000
-        case medium = 44100
-        case high   = 48000
-    }
-
-    enum BitDepth: Int16 {
-        case low    = 8
-        case medium = 16
-        case high   = 32
-    }
-
     enum Errors: Error {
         case alreadyRecording
         case alreadyStopped
@@ -120,27 +102,17 @@ private extension Recorder {
     func prepareNode() throws {
         guard let file else { throw Errors.cantPrepare }
 
-        let bus: AVAudioNodeBus = .zero
-        let node = engine.inputNode
-        let format = node.inputFormat(forBus: bus)
-
-        let settings: [String: Any] = [
-            AVFormatIDKey: kAudioFormatLinearPCM,
-            AVSampleRateKey: SampleRate.medium.rawValue,
-            AVLinearPCMBitDepthKey: BitDepth.medium.rawValue,
-            AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
-        ]
         let audioFile = try AVAudioFile(
             forWriting: file.url,
-            settings: settings,
-            commonFormat: .pcmFormatFloat32,
-            interleaved: true
+            settings: Settings.build(),
+            commonFormat: .pcmFormatInt32,
+            interleaved: false
         )
 
         engine.inputNode.installTap(
-            onBus: bus,
-            bufferSize: BufferSize.medium.rawValue,
-            format: format
+            onBus: .zero,
+            bufferSize: Settings.BufferSize.medium.rawValue,
+            format: audioFile.processingFormat
         ) { buffer, _ in
             do {
                 try audioFile.write(from: buffer)
